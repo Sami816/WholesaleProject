@@ -83,7 +83,7 @@ const firebaseConfig = {
         // Get data from Cloud specifically for this user
         const snapshot = await db.collection("wholesale_data").doc(currentUser).get();
         
-        if (snapshot.exists()) {
+        if (snapshot.exists) {
             const data = snapshot.data().rows;
             data.forEach(item => addNewRow(item));
 
@@ -104,30 +104,33 @@ const firebaseConfig = {
 
     // --- CLOUD SAVING LOGIC ---
     async function saveTableData() {
-        let dataArray = [];
-        const tableBody = document.getElementById("tableBody");
-        
-        for (let i = 0; i < tableBody.rows.length; i++) {
-            const row = tableBody.rows[i];
-            const id = row.cells[0].innerText; 
-            dataArray.push({
-                date: row.cells[1].innerText,
-                prev: document.getElementById(`prev_${id}`).innerText,
-                prod: document.getElementById(`prod_${id}`).value,
-                amt: document.getElementById(`amt_${id}`).value,
-                rec: document.getElementById(`rec_${id}`).value,
-                rem: document.getElementById(`rem_${id}`).innerText
-            });
-        }
+    let dataArray = [];
+    const tableBody = document.getElementById("tableBody");
+    
+    for (let i = 0; i < tableBody.rows.length; i++) {
+        const row = tableBody.rows[i];
+        const id = row.cells[0].innerText; 
+        dataArray.push({
+            date: row.cells[1].innerText,
+            prev: document.getElementById(`prev_${id}`).innerText,
+            prod: document.getElementById(`prod_${id}`).value,
+            amt: document.getElementById(`amt_${id}`).value,
+            rec: document.getElementById(`rec_${id}`).value,
+            rem: document.getElementById(`rem_${id}`).innerText
+        });
+    }
 
-        // Save to the Cloud Database
+    try {
+        // This line sends it to the Cloud
         await db.collection("wholesale_data").doc(currentUser).set({ rows: dataArray });
         
         document.getElementById('saveStatus').style.display = 'inline';
         setTimeout(() => { document.getElementById('saveStatus').style.display = 'none'; }, 3000);
-        
-        console.log("Notification: Data synced to Cloud for brothers to see!");
+        console.log("SUCCESS: Data is now safe in Firebase!");
+    } catch (error) {
+        console.error("ERROR saving to Firebase:", error);
     }
+}
 
     // The rest of your functions (calculate, addNewRow, deleteRow) remain the same...
     // [I'm keeping them short here to save space, but keep your existing logic for them]
