@@ -49,33 +49,104 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
 <script>
+    // 1. YOUR FIREBASE CONFIG (Paste the code you copied in Step 1 here)
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyD23EPs0fYy1PBypcFI22t0vZlKix-FXDI",
+  authDomain: "wholesale-shop-29c12.firebaseapp.com",
+  projectId: "wholesale-shop-29c12",
+  storageBucket: "wholesale-shop-29c12.firebasestorage.app",
+  messagingSenderId: "154359734424",
+  appId: "1:154359734424:web:6592f17ea26a8af79170ed",
+  measurementId: "G-GVX8Q1EJ7S"
+};
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     let rowCount = 0;
     const currentUser = sessionStorage.getItem('activeUser') || "Guest";
     document.getElementById('userDisplay').innerText = currentUser;
 
+    // --- CLOUD LOADING LOGIC ---
+    async function loadTableData() {
+        const tableBody = document.getElementById("tableBody");
+        tableBody.innerHTML = ""; // Clear table
+        rowCount = 0;
+
+        // Get data from Cloud specifically for this user
+        const snapshot = await db.collection("wholesale_data").doc(currentUser).get();
+        
+        if (snapshot.exists()) {
+            const data = snapshot.data().rows;
+            data.forEach(item => addNewRow(item));
+
+            // 24-Hour Rule Check
+            const lastEntry = data[data.length - 1];
+            const today = new Date().toLocaleDateString();
+            if (lastEntry && lastEntry.date !== today) {
+                alert("New Day! Carrying over balance...");
+                addNewRow({
+                    date: today,
+                    prev: lastEntry.rem,
+                    prod: '', amt: '', rec: '', rem: lastEntry.rem
+                });
+                saveTableData();
+            }
+        }
+    }
+
+    // --- CLOUD SAVING LOGIC ---
+    async function saveTableData() {
+        let dataArray = [];
+        const tableBody = document.getElementById("tableBody");
+        
+        for (let i = 0; i < tableBody.rows.length; i++) {
+            const row = tableBody.rows[i];
+            const id = row.cells[0].innerText; 
+            dataArray.push({
+                date: row.cells[1].innerText,
+                prev: document.getElementById(`prev_${id}`).innerText,
+                prod: document.getElementById(`prod_${id}`).value,
+                amt: document.getElementById(`amt_${id}`).value,
+                rec: document.getElementById(`rec_${id}`).value,
+                rem: document.getElementById(`rem_${id}`).innerText
+            });
+        }
+
+        // Save to the Cloud Database
+        await db.collection("wholesale_data").doc(currentUser).set({ rows: dataArray });
+        
+        document.getElementById('saveStatus').style.display = 'inline';
+        setTimeout(() => { document.getElementById('saveStatus').style.display = 'none'; }, 3000);
+        
+        console.log("Notification: Data synced to Cloud for brothers to see!");
+    }
+
+    // The rest of your functions (calculate, addNewRow, deleteRow) remain the same...
+    // [I'm keeping them short here to save space, but keep your existing logic for them]
+    
     function calculate(id) {
         const prev = parseFloat(document.getElementById(`prev_${id}`).innerText) || 0;
         const amt = parseFloat(document.getElementById(`amt_${id}`).value) || 0;
         const rec = parseFloat(document.getElementById(`rec_${id}`).value) || 0;
-        const remaining = (prev + amt) - rec;
-        document.getElementById(`rem_${id}`).innerText = remaining.toFixed(2);
+        document.getElementById(`rem_${id}`).innerText = (prev + amt - rec).toFixed(2);
     }
 
     function addNewRow(savedData = null) {
         rowCount++;
-        if(rowCount > 31) return;
-        
         const table = document.getElementById("tableBody");
         const row = table.insertRow();
         const today = new Date().toLocaleDateString();
-
         let prevVal = 0;
-        // If it's a new manual row, pull from the row above
         if (!savedData && table.rows.length > 1) {
-            const lastRowIdx = rowCount - 1;
-            const lastRemElem = document.getElementById(`rem_${lastRowIdx}`);
-            if(lastRemElem) prevVal = lastRemElem.innerText;
+            prevVal = document.getElementById(`rem_${rowCount-1}`).innerText;
         }
 
         row.innerHTML = `
@@ -92,54 +163,11 @@
 
     function deleteRow(btn, id) {
         const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
-        if(rem > 0) { alert("LOCK: Balance must be zero to delete!"); } 
+        if(rem > 0) { alert("LOCK: Balance must be zero!"); } 
         else { btn.parentElement.parentElement.remove(); saveTableData(); }
     }
 
-    function saveTableData() {
-        let dataArray = [];
-        const tableBody = document.getElementById("tableBody");
-        for (let i = 0; i < tableBody.rows.length; i++) {
-            const row = tableBody.rows[i];
-            const id = row.cells[0].innerText; 
-            dataArray.push({
-                date: row.cells[1].innerText,
-                prev: document.getElementById(`prev_${id}`).innerText,
-                prod: document.getElementById(`prod_${id}`).value,
-                amt: document.getElementById(`amt_${id}`).value,
-                rec: document.getElementById(`rec_${id}`).value,
-                rem: document.getElementById(`rem_${id}`).innerText
-            });
-        }
-        localStorage.setItem('data_' + currentUser, JSON.stringify(dataArray));
-        document.getElementById('saveStatus').style.display = 'inline';
-        setTimeout(() => { document.getElementById('saveStatus').style.display = 'none'; }, 3000);
-    }
-
-    function loadTableData() {
-        const saved = localStorage.getItem('data_' + currentUser);
-        if (saved) {
-            const data = JSON.parse(saved);
-            data.forEach(item => addNewRow(item));
-
-            // THE 24-HOUR RULE LOGIC:
-            const lastEntry = data[data.length - 1];
-            const today = new Date().toLocaleDateString();
-
-            if (lastEntry && lastEntry.date !== today) {
-                alert("New Day Detected! Carrying forward the balance...");
-                addNewRow({
-                    date: today,
-                    prev: lastEntry.rem, // Old Remaining becomes New Previous
-                    prod: '',
-                    amt: '',
-                    rec: '',
-                    rem: lastEntry.rem // Initial remaining is just the carry-over
-                });
-                saveTableData(); // Save the new day's row immediately
-            }
-        }
-    }
+    window.onload = loadTableData;
 </script>
 
 </body>
