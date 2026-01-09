@@ -76,31 +76,39 @@ const firebaseConfig = {
 
     // --- CLOUD LOADING LOGIC ---
     async function loadTableData() {
-        const tableBody = document.getElementById("tableBody");
-        tableBody.innerHTML = ""; // Clear table
-        rowCount = 0;
+    const tableBody = document.getElementById("tableBody");
+    tableBody.innerHTML = ""; 
+    rowCount = 0;
 
-        // Get data from Cloud specifically for this user
-        const snapshot = await db.collection("wholesale_data").doc(currentUser).get();
+    const snapshot = await db.collection("wholesale_data").doc(currentUser).get();
+    
+    if (snapshot.exists) {
+        const data = snapshot.data().rows;
+        data.forEach(item => addNewRow(item));
+
+        // --- IMPROVED 24-HOUR RULE WITH GUARD ---
+        const today = new Date().toLocaleDateString();
         
-        if (snapshot.exists) {
-            const data = snapshot.data().rows;
-            data.forEach(item => addNewRow(item));
+        // Check if ANY row already has today's date
+        const todayExists = data.some(row => row.date === today);
 
-            // 24-Hour Rule Check
+        if (!todayExists && data.length > 0) {
             const lastEntry = data[data.length - 1];
-            const today = new Date().toLocaleDateString();
-            if (lastEntry && lastEntry.date !== today) {
-                alert("New Day! Carrying over balance...");
-                addNewRow({
-                    date: today,
-                    prev: lastEntry.rem,
-                    prod: '', amt: '', rec: '', rem: lastEntry.rem
-                });
-                saveTableData();
-            }
+            alert("New Day Detected! Carrying over balance...");
+            
+            addNewRow({
+                date: today,
+                prev: lastEntry.rem,
+                prod: '', 
+                amt: '', 
+                rec: '', 
+                rem: lastEntry.rem
+            });
+            // Save immediately so the other device sees "Today" is now handled
+            saveTableData();
         }
     }
+}
 
     // --- CLOUD SAVING LOGIC ---
     async function saveTableData() {
