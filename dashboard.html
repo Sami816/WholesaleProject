@@ -75,7 +75,14 @@ const firebaseConfig = {
     document.getElementById('userDisplay').innerText = currentUser;
 
     // --- CLOUD LOADING LOGIC ---
-    async function loadTableData() {
+    // --- UNIVERSAL DATE FUNCTION ---
+function getUniversalDate() {
+    const d = new Date();
+    // This forces Year-Month-Day (e.g., 2026-01-10)
+    return d.getFullYear() + "-" + (d.getMonth() + 1).toString().padStart(2, '0') + "-" + d.getDate().toString().padStart(2, '0');
+}
+
+async function loadTableData() {
     const tableBody = document.getElementById("tableBody");
     tableBody.innerHTML = ""; 
     rowCount = 0;
@@ -86,15 +93,15 @@ const firebaseConfig = {
         const data = snapshot.data().rows;
         data.forEach(item => addNewRow(item));
 
-        // --- IMPROVED 24-HOUR RULE WITH GUARD ---
-        const today = new Date().toLocaleDateString();
+        // Use our new Universal Date
+        const today = getUniversalDate();
         
-        // Check if ANY row already has today's date
+        // Guard: Check if this specific date string already exists
         const todayExists = data.some(row => row.date === today);
 
         if (!todayExists && data.length > 0) {
             const lastEntry = data[data.length - 1];
-            alert("New Day Detected! Carrying over balance...");
+            alert("New Day Detected (" + today + ")! Carrying over balance...");
             
             addNewRow({
                 date: today,
@@ -104,7 +111,6 @@ const firebaseConfig = {
                 rec: '', 
                 rem: lastEntry.rem
             });
-            // Save immediately so the other device sees "Today" is now handled
             saveTableData();
         }
     }
@@ -154,7 +160,7 @@ const firebaseConfig = {
         rowCount++;
         const table = document.getElementById("tableBody");
         const row = table.insertRow();
-        const today = new Date().toLocaleDateString();
+        const today = getUniversalDate();
         let prevVal = 0;
         if (!savedData && table.rows.length > 1) {
             prevVal = document.getElementById(`rem_${rowCount-1}`).innerText;
