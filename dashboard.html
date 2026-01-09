@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Wholesale Dashboard - Permanent Storage</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .header { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #007bff; }
+        table { width: 100%; background: #fff; border-collapse: collapse; margin-bottom: 15px; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        th { background: #333; color: white; }
+        input { width: 90%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .controls { background: white; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
+        .status-saved { color: #28a745; font-weight: bold; display: none; margin-left: 10px; }
+        .btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body onload="loadTableData()">
+
+<div class="container">
+    <div class="header">
+        <h2>Wholesale Management System</h2>
+        <p>User: <b id="userDisplay">Brother_1</b> | Customer: <b>Al-Hafeez Vegetables</b></p>
+    </div>
+
+    <table id="excelTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Previous Income</th>
+                <th>Product Detail</th>
+                <th>Product Amount</th>
+                <th>Received Amount</th>
+                <th>Remaining</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            </tbody>
+    </table>
+
+    <div class="controls">
+        <button class="btn-add" onclick="addNewRow()">+ Add New Entry</button>
+        <button class="btn-save" onclick="saveTableData()">Save & Notify Owner</button>
+        <span id="saveStatus" class="status-saved">✔ Data Saved & Owner Notified!</span>
+    </div>
+</div>
+
+<script>
+    let rowCount = 0;
+    const currentUser = sessionStorage.getItem('activeUser') || "Guest";
+    document.getElementById('userDisplay').innerText = currentUser;
+
+    function calculate(id) {
+        const prev = parseFloat(document.getElementById(`prev_${id}`).innerText) || 0;
+        const amt = parseFloat(document.getElementById(`amt_${id}`).value) || 0;
+        const rec = parseFloat(document.getElementById(`rec_${id}`).value) || 0;
+        const remaining = (prev + amt) - rec;
+        document.getElementById(`rem_${id}`).innerText = remaining.toFixed(2);
+    }
+
+    function addNewRow(savedData = null) {
+        rowCount++;
+        if(rowCount > 31) return;
+        
+        const table = document.getElementById("tableBody");
+        const row = table.insertRow();
+        const today = new Date().toLocaleDateString();
+
+        let prevVal = 0;
+        // If it's a new manual row, pull from the row above
+        if (!savedData && table.rows.length > 1) {
+            const lastRowIdx = rowCount - 1;
+            const lastRemElem = document.getElementById(`rem_${lastRowIdx}`);
+            if(lastRemElem) prevVal = lastRemElem.innerText;
+        }
+
+        row.innerHTML = `
+            <td>${rowCount}</td>
+            <td>${savedData ? savedData.date : today}</td>
+            <td id="prev_${rowCount}">${savedData ? savedData.prev : prevVal}</td>
+            <td><input type="text" id="prod_${rowCount}" value="${savedData ? savedData.prod : ''}"></td>
+            <td><input type="number" id="amt_${rowCount}" oninput="calculate(${rowCount})" value="${savedData ? savedData.amt : ''}"></td>
+            <td><input type="number" id="rec_${rowCount}" oninput="calculate(${rowCount})" value="${savedData ? savedData.rec : ''}"></td>
+            <td id="rem_${rowCount}" style="font-weight:bold">${savedData ? savedData.rem : '0'}</td>
+            <td><button onclick="deleteRow(this, ${rowCount})" style="color:red; border:none; cursor:pointer;">Delete</button></td>
+        `;
+    }
+
+    function deleteRow(btn, id) {
+        const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
+        if(rem > 0) { alert("LOCK: Balance must be zero to delete!"); } 
+        else { btn.parentElement.parentElement.remove(); saveTableData(); }
+    }
+
+    function saveTableData() {
+        let dataArray = [];
+        const tableBody = document.getElementById("tableBody");
+        for (let i = 0; i < tableBody.rows.length; i++) {
+            const row = tableBody.rows[i];
+            const id = row.cells[0].innerText; 
+            dataArray.push({
+                date: row.cells[1].innerText,
+                prev: document.getElementById(`prev_${id}`).innerText,
+                prod: document.getElementById(`prod_${id}`).value,
+                amt: document.getElementById(`amt_${id}`).value,
+                rec: document.getElementById(`rec_${id}`).value,
+                rem: document.getElementById(`rem_${id}`).innerText
+            });
+        }
+        localStorage.setItem('data_' + currentUser, JSON.stringify(dataArray));
+        document.getElementById('saveStatus').style.display = 'inline';
+        setTimeout(() => { document.getElementById('saveStatus').style.display = 'none'; }, 3000);
+    }
+
+    function loadTableData() {
+        const saved = localStorage.getItem('data_' + currentUser);
+        if (saved) {
+            const data = JSON.parse(saved);
+            data.forEach(item => addNewRow(item));
+
+            // THE 24-HOUR RULE LOGIC:
+            const lastEntry = data[data.length - 1];
+            const today = new Date().toLocaleDateString();
+
+            if (lastEntry && lastEntry.date !== today) {
+                alert("New Day Detected! Carrying forward the balance...");
+                addNewRow({
+                    date: today,
+                    prev: lastEntry.rem, // Old Remaining becomes New Previous
+                    prod: '',
+                    amt: '',
+                    rec: '',
+                    rem: lastEntry.rem // Initial remaining is just the carry-over
+                });
+                saveTableData(); // Save the new day's row immediately
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

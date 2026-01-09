@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Wholesale Management Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-popup { background: white; padding: 30px; border-radius: 8px; box-shadow: 0px 4px 15px rgba(0,0,0,0.2); width: 350px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 95%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="login-popup">
+        <h2>Shop Login</h2>
+        <input type="text" id="username" placeholder="Enter Name (e.g., Brother1)">
+        <input type="email" id="email" placeholder="Enter Gmail">
+        <button onclick="login()">Enter Dashboard</button>
+    </div>
+
+    <script>
+        function login() {
+            const user = document.getElementById('username').value;
+            const mail = document.getElementById('email').value;
+            
+            if(user !== "" && mail !== "") {
+                // We store the username in 'sessionStorage' so the next page knows who you are
+                sessionStorage.setItem('activeUser', user);
+                window.location.href = "dashboard.html";
+            } else {
+                alert("Please enter both Name and Gmail");
+            }
+        }
+    </script>
+</body>
+</html>
