@@ -133,7 +133,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 1. FIREBASE CONFIG
+    // 1. FIREBASE CONFIG (Make sure your keys are inside these quotes)
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyD23EPs0fYy1PBypcFI22t0vZlKix-FXDI",
@@ -151,14 +151,22 @@ const firebaseConfig = {
     const currentOwner = sessionStorage.getItem('activeUser');
     let activeCustomer = "";
     let rowCount = 0;
-    let productPrices = {}; // Store product prices locally
+    let productPrices = {}; 
 
     function closeAllModals() { 
         document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); 
     }
 
     function openOwnerModal() { document.getElementById('ownerModal').style.display = 'block'; }
-    function openModal() { document.getElementById('profileModal').style.display = 'block'; }
+    function openModal() { 
+        // Reset the form so it's empty for a new customer
+        document.getElementById('pName').value = "";
+        document.getElementById('pPhone').value = "";
+        document.getElementById('pAddress').value = "";
+        document.getElementById('pPic').value = "";
+        document.getElementById('profileModal').style.display = 'block'; 
+    }
+    
     async function openProductModal() { 
         document.getElementById('productModal').style.display = 'block';
         renderProductList();
@@ -203,7 +211,39 @@ const firebaseConfig = {
         renderProductList();
     }
 
-    // --- CUSTOMER LOGIC ---
+    // ==========================================
+    // --- SAVE CUSTOMER PROFILE (FIXED) ---
+    // ==========================================
+    async function saveProfile() {
+        const name = document.getElementById('pName').value.trim();
+        const phone = document.getElementById('pPhone').value;
+        const addr = document.getElementById('pAddress').value;
+        const pic = document.getElementById('pPic').value;
+
+        if(!name) {
+            alert("Customer Name is required!");
+            return;
+        }
+
+        try {
+            // Save to Firebase
+            await db.collection("wholesale_data").doc(currentOwner)
+                    .collection("customers").doc(name).set({
+                phone: phone,
+                address: addr,
+                pic: pic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+            }, { merge: true });
+
+            alert("Customer Saved Successfully!");
+            closeAllModals(); // Closes the popup
+            loadCustomers();  // Refreshes the grid
+        } catch (error) {
+            console.error("Save Error:", error);
+            alert("Error saving: " + error.message);
+        }
+    }
+
+    // --- CUSTOMER LIST LOGIC ---
     async function loadCustomers() {
         document.getElementById('ownerDisplay').innerText = currentOwner;
         const snap = await db.collection("wholesale_data").doc(currentOwner).get();
@@ -230,6 +270,13 @@ const firebaseConfig = {
                     </div>
                 </div>`;
         });
+    }
+
+    async function deleteCust(name) {
+        if(confirm("Delete " + name + " and all records?")) {
+            await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).delete();
+            loadCustomers();
+        }
     }
 
     // --- LEDGER LOGIC ---
@@ -263,7 +310,7 @@ const firebaseConfig = {
 
         let productOptions = `<option value="">-- Choose Product --</option>`;
         for(let p in productPrices) {
-            productOptions += `<option value="${productPrices[p]}" ${data && data.prod === p ? 'selected' : ''}>${p} (${productPrices[p]})</option>`;
+            productOptions += `<option value="${productPrices[p]}" ${data && data.prod === p ? 'selected' : ''}>${p}</option>`;
         }
 
         row.innerHTML = `
@@ -307,7 +354,7 @@ const firebaseConfig = {
             rows.push({
                 date: r.cells[1].innerText,
                 prev: document.getElementById(`prev_${id}`).innerText,
-                prod: select.options[select.selectedIndex].text.split(" (")[0],
+                prod: select.options[select.selectedIndex].text,
                 amt: document.getElementById(`a_${id}`).value,
                 rec: document.getElementById(`r_${id}`).value,
                 rem: document.getElementById(`rem_${id}`).innerText
@@ -315,6 +362,11 @@ const firebaseConfig = {
         }
         await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).set({rows: rows}, {merge:true});
         alert("Synced Successfully!");
+    }
+
+    function delRow(btn) {
+        btn.parentElement.parentElement.remove();
+        saveTable();
     }
 
     window.onload = loadCustomers;
