@@ -214,34 +214,37 @@ const firebaseConfig = {
     // ==========================================
     // --- SAVE CUSTOMER PROFILE (FIXED) ---
     // ==========================================
-    async function saveProfile() {
-        const name = document.getElementById('pName').value.trim();
-        const phone = document.getElementById('pPhone').value;
-        const addr = document.getElementById('pAddress').value;
-        const pic = document.getElementById('pPic').value;
+    // --- SAVE CUSTOMER PROFILE FUNCTION ---
+async function saveProfile() {
+    console.log("Save button clicked..."); // This will show in Inspect -> Console
+    
+    const name = document.getElementById('pName').value.trim();
+    const phone = document.getElementById('pPhone').value;
+    const addr = document.getElementById('pAddress').value;
+    const pic = document.getElementById('pPic').value;
 
-        if(!name) {
-            alert("Customer Name is required!");
-            return;
-        }
-
-        try {
-            // Save to Firebase
-            await db.collection("wholesale_data").doc(currentOwner)
-                    .collection("customers").doc(name).set({
-                phone: phone,
-                address: addr,
-                pic: pic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-            }, { merge: true });
-
-            alert("Customer Saved Successfully!");
-            closeAllModals(); // Closes the popup
-            loadCustomers();  // Refreshes the grid
-        } catch (error) {
-            console.error("Save Error:", error);
-            alert("Error saving: " + error.message);
-        }
+    if(!name) {
+        alert("Customer Name is required!");
+        return;
     }
+
+    try {
+        // This is the part that talks to Google Firebase
+        await db.collection("wholesale_data").doc(currentOwner)
+                .collection("customers").doc(name).set({
+            phone: phone,
+            address: addr,
+            pic: pic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+        }, { merge: true });
+
+        alert("Customer Saved Successfully!");
+        closeAllModals(); // This hides the popup
+        loadCustomers();  // This refreshes your list
+    } catch (error) {
+        console.error("Firebase Error:", error);
+        alert("Save failed: " + error.message);
+    }
+}
 
     // --- CUSTOMER LIST LOGIC ---
     async function loadCustomers() {
