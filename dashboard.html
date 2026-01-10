@@ -133,7 +133,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 1. FIREBASE CONFIG (Make sure your keys are inside these quotes)
+    // 1. FIREBASE CONFIG
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyD23EPs0fYy1PBypcFI22t0vZlKix-FXDI",
@@ -153,38 +153,34 @@ const firebaseConfig = {
     let rowCount = 0;
     let productPrices = {}; 
 
+    // --- MODAL CONTROL ---
     function closeAllModals() { 
-        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); 
+        document.getElementById('ownerModal').style.display = 'none';
+        document.getElementById('profileModal').style.display = 'none';
+        document.getElementById('productModal').style.display = 'none';
     }
 
     function openOwnerModal() { document.getElementById('ownerModal').style.display = 'block'; }
-    function openModal() { 
-        // Reset the form so it's empty for a new customer
-        document.getElementById('pName').value = "";
-        document.getElementById('pPhone').value = "";
-        document.getElementById('pAddress').value = "";
-        document.getElementById('pPic').value = "";
-        document.getElementById('profileModal').style.display = 'block'; 
-    }
-    
-    async function openProductModal() { 
+    function openModal() { document.getElementById('profileModal').style.display = 'block'; }
+    function openProductModal() { 
         document.getElementById('productModal').style.display = 'block';
         renderProductList();
     }
 
+    // --- HELPERS ---
     function getUniversalDate() {
         const d = new Date();
         return d.getFullYear() + "-" + (d.getMonth() + 1).toString().padStart(2, '0') + "-" + d.getDate().toString().padStart(2, '0');
     }
 
-    // --- OWNER LOGIC ---
+    // --- OWNER PROFILE ---
     async function saveOwnerProfile() {
         const pic = document.getElementById('ownerPicInput').value;
         await db.collection("wholesale_data").doc(currentOwner).set({ ownerPic: pic }, { merge: true });
         location.reload();
     }
 
-    // --- PRODUCT LOGIC ---
+    // --- PRODUCT MANAGEMENT ---
     async function addProductToList() {
         const name = document.getElementById('newProdName').value;
         const price = document.getElementById('newProdPrice').value;
@@ -211,42 +207,33 @@ const firebaseConfig = {
         renderProductList();
     }
 
-    // ==========================================
-    // --- SAVE CUSTOMER PROFILE (FIXED) ---
-    // ==========================================
-    // --- SAVE CUSTOMER PROFILE FUNCTION ---
-async function saveProfile() {
-    console.log("Save button clicked..."); // This will show in Inspect -> Console
-    
-    const name = document.getElementById('pName').value.trim();
-    const phone = document.getElementById('pPhone').value;
-    const addr = document.getElementById('pAddress').value;
-    const pic = document.getElementById('pPic').value;
+    // --- CUSTOMER PROFILE (The missing function) ---
+    async function saveProfile() {
+        const name = document.getElementById('pName').value.trim();
+        const phone = document.getElementById('pPhone').value;
+        const addr = document.getElementById('pAddress').value;
+        const pic = document.getElementById('pPic').value;
 
-    if(!name) {
-        alert("Customer Name is required!");
-        return;
+        if(!name) { alert("Customer Name is required!"); return; }
+
+        try {
+            await db.collection("wholesale_data").doc(currentOwner)
+                    .collection("customers").doc(name).set({
+                phone: phone,
+                address: addr,
+                pic: pic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+            }, { merge: true });
+
+            alert("Customer Saved!");
+            closeAllModals();
+            loadCustomers();
+        } catch (e) {
+            console.error(e);
+            alert("Error: " + e.message);
+        }
     }
 
-    try {
-        // This is the part that talks to Google Firebase
-        await db.collection("wholesale_data").doc(currentOwner)
-                .collection("customers").doc(name).set({
-            phone: phone,
-            address: addr,
-            pic: pic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-        }, { merge: true });
-
-        alert("Customer Saved Successfully!");
-        closeAllModals(); // This hides the popup
-        loadCustomers();  // This refreshes your list
-    } catch (error) {
-        console.error("Firebase Error:", error);
-        alert("Save failed: " + error.message);
-    }
-}
-
-    // --- CUSTOMER LIST LOGIC ---
+    // --- CUSTOMER LIST ---
     async function loadCustomers() {
         document.getElementById('ownerDisplay').innerText = currentOwner;
         const snap = await db.collection("wholesale_data").doc(currentOwner).get();
@@ -311,20 +298,16 @@ async function saveProfile() {
             prev = table.rows[table.rows.length-2].cells[6].innerText;
         }
 
-        let productOptions = `<option value="">-- Choose Product --</option>`;
+        let options = `<option value="">-- Choose --</option>`;
         for(let p in productPrices) {
-            productOptions += `<option value="${productPrices[p]}" ${data && data.prod === p ? 'selected' : ''}>${p}</option>`;
+            options += `<option value="${productPrices[p]}" ${data && data.prod === p ? 'selected' : ''}>${p}</option>`;
         }
 
         row.innerHTML = `
             <td>${id}</td>
             <td>${data ? data.date : getUniversalDate()}</td>
             <td id="prev_${id}">${data ? data.prev : prev}</td>
-            <td>
-                <select id="p_select_${id}" onchange="updatePrice(${id})">
-                    ${productOptions}
-                </select>
-            </td>
+            <td><select id="p_select_${id}" onchange="updatePrice(${id})">${options}</select></td>
             <td><input type="number" id="a_${id}" oninput="calc(${id})" value="${data ? data.amt : ''}"></td>
             <td><input type="number" id="r_${id}" oninput="calc(${id})" value="${data ? data.rec : ''}"></td>
             <td id="rem_${id}" style="font-weight:bold">${data ? data.rem : '0'}</td>
@@ -333,12 +316,8 @@ async function saveProfile() {
     }
 
     function updatePrice(id) {
-        const select = document.getElementById(`p_select_${id}`);
-        const price = select.value;
-        if(price) {
-            document.getElementById(`a_${id}`).value = price;
-            calc(id);
-        }
+        const p = document.getElementById(`p_select_${id}`).value;
+        if(p) { document.getElementById(`a_${id}`).value = p; calc(id); }
     }
 
     function calc(id) {
@@ -353,28 +332,25 @@ async function saveProfile() {
         const tableRows = document.getElementById("tableBody").rows;
         for(let r of tableRows) {
             const id = r.cells[0].innerText;
-            const select = document.getElementById(`p_select_${id}`);
+            const sel = document.getElementById(`p_select_${id}`);
             rows.push({
                 date: r.cells[1].innerText,
                 prev: document.getElementById(`prev_${id}`).innerText,
-                prod: select.options[select.selectedIndex].text,
+                prod: sel.options[sel.selectedIndex].text,
                 amt: document.getElementById(`a_${id}`).value,
                 rec: document.getElementById(`r_${id}`).value,
                 rem: document.getElementById(`rem_${id}`).innerText
             });
         }
         await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).set({rows: rows}, {merge:true});
-        alert("Synced Successfully!");
+        alert("Synced!");
     }
 
-    function delRow(btn) {
-        btn.parentElement.parentElement.remove();
-        saveTable();
-    }
-
-    window.onload = loadCustomers;
+    function delRow(btn) { btn.parentElement.parentElement.remove(); saveTable(); }
     function goBack() { location.reload(); }
     function logout() { sessionStorage.clear(); window.location.href="index.html"; }
+
+    window.onload = loadCustomers;
 </script>
 </body>
 </html>
