@@ -29,12 +29,16 @@
 </head>
 <body>
 
+<div id="loadingOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center;">
+    <h3>Verifying Security...</h3>
+</div>
+
 <div class="container">
     <div id="selectionScreen">
         <div class="header">
             <div>
                 <h1 style="margin:0; font-size: 18px;">Wholesale Manager</h1>
-                <span>Logged in: <b id="ownerDisplay"></b></span>
+                <span>Logged in: <b id="ownerDisplay">Checking...</b></span>
             </div>
             <button class="btn btn-red" onclick="logout()">Logout</button>
         </div>
@@ -92,7 +96,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <script>
-    // 1. CONFIGURATIONS
     emailjs.init("Uz_QoRgiS5gMi3IF1");
     
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -108,27 +111,26 @@ const firebaseConfig = {
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    // This ensures we get the EXACT email from the Firebase Login session
-let currentOwner = "";
+    let currentOwner = "";
 
-firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        currentOwner = user.email; // Use the verified email from Firebase
-        document.getElementById('ownerDisplay').innerText = currentOwner;
-        loadCustomers(); // Load data only after we are sure who the user is
-    } else {
-        window.location.href = "index.html"; // Redirect if not logged in
-    }
-});
-
-    if(!currentOwner) { window.location.href = "index.html"; }
+    // --- SECURE AUTH OBSERVER ---
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            currentOwner = user.email;
+            document.getElementById('ownerDisplay').innerText = currentOwner;
+            document.getElementById('loadingOverlay').style.display = 'none';
+            loadCustomers();
+        } else {
+            window.location.href = "index.html";
+        }
+    });
 
     let activeCustomer = "";
     let productPrices = {};
 
-    // --- HELPERS ---
     function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
     function openProductModal() { document.getElementById('prodModal').style.display='block'; renderProdCatalog(); }
+    
     function openCustModal(isEdit, name="", phone="", addr="") {
         document.getElementById('custModal').style.display='block';
         document.getElementById('editOldName').value = isEdit ? name : "";
@@ -145,7 +147,6 @@ firebase.auth().onAuthStateChanged((user) => {
         }).then(() => console.log("Email Sent")).catch(e => console.error(e));
     }
 
-    // --- PRODUCT LOGIC ---
     async function addProduct() {
         const n = document.getElementById('newPn').value;
         const p = document.getElementById('newPp').value;
@@ -169,9 +170,8 @@ firebase.auth().onAuthStateChanged((user) => {
         renderProdCatalog();
     }
 
-    // --- CUSTOMER LOGIC ---
     async function loadCustomers() {
-        document.getElementById('ownerDisplay').innerText = currentOwner;
+        if(!currentOwner) return;
         const main = await db.collection("wholesale_data").doc(currentOwner).get();
         if(main.exists) productPrices = main.data().products || {};
 
@@ -193,6 +193,7 @@ firebase.auth().onAuthStateChanged((user) => {
     }
 
     async function saveCustomer() {
+        if(!currentOwner) return;
         const newName = document.getElementById('pName').value.trim();
         const oldName = document.getElementById('editOldName').value;
         const phone = document.getElementById('pPhone').value;
@@ -201,18 +202,24 @@ firebase.auth().onAuthStateChanged((user) => {
 
         const custRef = db.collection("wholesale_data").doc(currentOwner).collection("customers");
 
-        if(oldName && oldName !== newName) {
-            const oldDoc = await custRef.doc(oldName).get();
-            if(oldDoc.exists) {
-                await custRef.doc(newName).set({ ...oldDoc.data(), phone: phone, address: addr });
-                await custRef.doc(oldName).delete();
-                sendNotify(`Renamed customer ${oldName} to ${newName}`);
+        try {
+            if(oldName && oldName !== newName) {
+                const oldDoc = await custRef.doc(oldName).get();
+                if(oldDoc.exists) {
+                    await custRef.doc(newName).set({ ...oldDoc.data(), phone: phone, address: addr });
+                    await custRef.doc(oldName).delete();
+                    sendNotify(`Renamed customer ${oldName} to ${newName}`);
+                }
+            } else {
+                await custRef.doc(newName).set({ phone: phone, address: addr }, { merge: true });
+                sendNotify(`Updated details for ${newName}`);
             }
-        } else {
-            await custRef.doc(newName).set({ phone: phone, address: addr }, { merge: true });
-            sendNotify(`Updated details for ${newName}`);
+            closeModals(); 
+            loadCustomers();
+        } catch (e) {
+            console.error(e);
+            alert("Error saving: " + e.message);
         }
-        closeModals(); loadCustomers();
     }
 
     async function deleteCust(name) {
@@ -226,7 +233,6 @@ firebase.auth().onAuthStateChanged((user) => {
         }
     }
 
-    // --- LEDGER LOGIC ---
     async function openLedger(name) {
         activeCustomer = name;
         document.getElementById('selectionScreen').style.display = 'none';
@@ -275,7 +281,8 @@ firebase.auth().onAuthStateChanged((user) => {
 
     function updateRowTotal(id) {
         let total = 0;
-        const boxes = document.getElementById(`tableBody`).rows[id-1].querySelectorAll('input:checked');
+        const rows = document.getElementById(`tableBody`).rows;
+        const boxes = rows[id-1].querySelectorAll('input:checked');
         boxes.forEach(box => total += parseFloat(box.getAttribute('data-price')));
         document.getElementById(`a_${id}`).value = total > 0 ? total : '';
         calc(id);
@@ -302,7 +309,7 @@ firebase.auth().onAuthStateChanged((user) => {
                 rem: document.getElementById(`rem_${id}`).innerText
             });
         }
-        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).update({rows: rows});
+        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).set({rows: rows}, {merge: true});
         sendNotify(`Ledger updated for ${activeCustomer}`);
         alert("Synced!"); loadTable();
     }
@@ -323,8 +330,7 @@ firebase.auth().onAuthStateChanged((user) => {
     }
 
     function goBack() { location.reload(); }
-    function logout() { firebase.auth().signOut().then(() => { sessionStorage.clear(); window.location.href="index.html"; }); }
-    window.onload = loadCustomers;
+    function logout() { firebase.auth().signOut().then(() => { sessionStorage.clear(); window.location.href = "index.html"; }); }
 </script>
 </body>
 </html>
