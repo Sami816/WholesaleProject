@@ -2,60 +2,92 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Wholesale Dashboard - Permanent Storage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Management - Cloud Dashboard</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; margin: 0; }
         .container { max-width: 1100px; margin: auto; }
         .header { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #007bff; }
+        
+        /* Customer Grid Styling */
+        .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .customer-card { background: white; padding: 25px; border-radius: 10px; border: 1px solid #ddd; text-align: center; cursor: pointer; transition: 0.3s; font-weight: bold; color: #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .customer-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,123,255,0.2); background: #007bff; color: white; }
+        
+        /* Table Styling */
         table { width: 100%; background: #fff; border-collapse: collapse; margin-bottom: 15px; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
         th { background: #333; color: white; }
-        input { width: 90%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        .controls { background: white; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
-        .status-saved { color: #28a745; font-weight: bold; display: none; margin-left: 10px; }
+        input { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* Buttons */
+        .controls { background: white; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-save { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-back { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 10px; }
+        .status-saved { color: #28a745; font-weight: bold; display: none; margin-left: 10px; }
     </style>
 </head>
-<body onload="loadTableData()">
+<body>
 
 <div class="container">
-    <div class="header">
-        <h2>Wholesale Management System</h2>
-        <p>User: <b id="userDisplay">Brother_1</b> | Customer: <b>Al-Hafeez Vegetables</b></p>
+    
+    <div id="customerSelectionScreen">
+        <div class="header">
+            <h2>Business Manager</h2>
+            <p>Welcome, Owner: <b id="ownerDisplay">Loading...</b></p>
+        </div>
+
+        <h3>Select a Customer File:</h3>
+        <div id="customerList" class="customer-grid">
+            </div>
+
+        <div class="controls">
+            <input type="text" id="newCustomerName" placeholder="Enter New Customer Name (e.g. Jawad)">
+            <button onclick="addNewCustomer()" class="btn-add">+ Create New File</button>
+        </div>
     </div>
 
-    <table id="excelTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Date</th>
-                <th>Previous Income</th>
-                <th>Product Detail</th>
-                <th>Product Amount</th>
-                <th>Received Amount</th>
-                <th>Remaining</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            </tbody>
-    </table>
+    <div id="ledgerScreen" style="display:none;">
+        <button class="btn-back" onclick="backToCustomers()">← Back to Customer List</button>
+        
+        <div class="header">
+            <h2 id="currentCustomerTitle">Customer Ledger</h2>
+            <p>Managing daily records for this customer.</p>
+        </div>
 
-    <div class="controls">
-        <button class="btn-add" onclick="addNewRow()">+ Add New Entry</button>
-        <button class="btn-save" onclick="saveTableData()">Save & Notify Owner</button>
-        <span id="saveStatus" class="status-saved">✔ Data Saved & Owner Notified!</span>
+        <table id="excelTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Previous Income</th>
+                    <th>Product Detail</th>
+                    <th>Product Amount</th>
+                    <th>Received Amount</th>
+                    <th>Remaining Balance</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+
+        <div class="controls">
+            <button class="btn-add" onclick="addNewRow()">+ Add New Row</button>
+            <button class="btn-save" onclick="saveTableData()">Save & Sync Cloud</button>
+            <span id="saveStatus" class="status-saved">✔ Data Saved Successfully!</span>
+        </div>
     </div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 1. YOUR FIREBASE CONFIG (Paste the code you copied in Step 1 here)
+    // 1. CONFIGURATION: Paste your actual keys from Firebase Project Settings here
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyD23EPs0fYy1PBypcFI22t0vZlKix-FXDI",
   authDomain: "wholesale-shop-29c12.firebaseapp.com",
@@ -66,89 +98,118 @@ const firebaseConfig = {
   measurementId: "G-GVX8Q1EJ7S"
 };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    // Initialize
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     let rowCount = 0;
-    const currentUser = sessionStorage.getItem('activeUser') || "Guest";
-    document.getElementById('userDisplay').innerText = currentUser;
+    const currentOwner = sessionStorage.getItem('activeUser') || "Guest";
+    let currentCustomerFile = ""; 
 
-    // --- CLOUD LOADING LOGIC ---
-    // --- UNIVERSAL DATE FUNCTION ---
-function getUniversalDate() {
-    const d = new Date();
-    // This forces Year-Month-Day (e.g., 2026-01-10)
-    return d.getFullYear() + "-" + (d.getMonth() + 1).toString().padStart(2, '0') + "-" + d.getDate().toString().padStart(2, '0');
-}
-
-async function loadTableData() {
-    const tableBody = document.getElementById("tableBody");
-    tableBody.innerHTML = ""; 
-    rowCount = 0;
-
-    const snapshot = await db.collection("wholesale_data").doc(currentUser).get();
-    
-    if (snapshot.exists) {
-        const data = snapshot.data().rows;
-        data.forEach(item => addNewRow(item));
-
-        // Use our new Universal Date
-        const today = getUniversalDate();
-        
-        // Guard: Check if this specific date string already exists
-        const todayExists = data.some(row => row.date === today);
-
-        if (!todayExists && data.length > 0) {
-            const lastEntry = data[data.length - 1];
-            alert("New Day Detected (" + today + ")! Carrying over balance...");
-            
-            addNewRow({
-                date: today,
-                prev: lastEntry.rem,
-                prod: '', 
-                amt: '', 
-                rec: '', 
-                rem: lastEntry.rem
-            });
-            saveTableData();
-        }
+    // Helper: Standard Date (Forces same format on all devices)
+    function getUniversalDate() {
+        const d = new Date();
+        return d.getFullYear() + "-" + (d.getMonth() + 1).toString().padStart(2, '0') + "-" + d.getDate().toString().padStart(2, '0');
     }
-}
 
-    // --- CLOUD SAVING LOGIC ---
-    async function saveTableData() {
-    let dataArray = [];
-    const tableBody = document.getElementById("tableBody");
-    
-    for (let i = 0; i < tableBody.rows.length; i++) {
-        const row = tableBody.rows[i];
-        const id = row.cells[0].innerText; 
-        dataArray.push({
-            date: row.cells[1].innerText,
-            prev: document.getElementById(`prev_${id}`).innerText,
-            prod: document.getElementById(`prod_${id}`).value,
-            amt: document.getElementById(`amt_${id}`).value,
-            rec: document.getElementById(`rec_${id}`).value,
-            rem: document.getElementById(`rem_${id}`).innerText
+    // --- NAVIGATION LOGIC ---
+
+    async function loadCustomerList() {
+        document.getElementById('ownerDisplay').innerText = currentOwner;
+        const listDiv = document.getElementById('customerList');
+        listDiv.innerHTML = "Checking files...";
+
+        // Path: wholesale_data -> [OwnerName] -> customers (Sub-collection)
+        const snapshot = await db.collection("wholesale_data").doc(currentOwner).collection("customers").get();
+        
+        listDiv.innerHTML = "";
+        if (snapshot.empty) {
+            listDiv.innerHTML = "<p>No customer files found. Create your first one below!</p>";
+        }
+
+        snapshot.forEach((doc) => {
+            const name = doc.id;
+            const card = document.createElement('div');
+            card.className = "customer-card";
+            card.innerText = name;
+            card.onclick = () => openLedger(name);
+            listDiv.appendChild(card);
         });
     }
 
-    try {
-        // This line sends it to the Cloud
-        await db.collection("wholesale_data").doc(currentUser).set({ rows: dataArray });
+    async function addNewCustomer() {
+        const name = document.getElementById('newCustomerName').value.trim();
+        if(!name) return alert("Please enter a name");
+
+        // Creates a document in the customers sub-collection
+        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).set({ rows: [] });
+        document.getElementById('newCustomerName').value = "";
+        loadCustomerList(); 
+    }
+
+    async function openLedger(customerName) {
+        currentCustomerFile = customerName;
+        document.getElementById('customerSelectionScreen').style.display = 'none';
+        document.getElementById('ledgerScreen').style.display = 'block';
+        document.getElementById('currentCustomerTitle').innerText = "Customer File: " + customerName;
+        loadTableData(); 
+    }
+
+    function backToCustomers() {
+        document.getElementById('customerSelectionScreen').style.display = 'block';
+        document.getElementById('ledgerScreen').style.display = 'none';
+        loadCustomerList();
+    }
+
+    // --- DATA LOGIC ---
+
+    async function loadTableData() {
+        const tableBody = document.getElementById("tableBody");
+        tableBody.innerHTML = ""; 
+        rowCount = 0;
+
+        const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(currentCustomerFile).get();
+        
+        if (doc.exists) {
+            const data = doc.data().rows || [];
+            data.forEach(item => addNewRow(item));
+
+            const today = getUniversalDate();
+            const todayExists = data.some(row => row.date === today);
+
+            if (!todayExists && data.length > 0) {
+                const lastEntry = data[data.length - 1];
+                alert("New Day! Carrying over balance for " + currentCustomerFile);
+                addNewRow({
+                    date: today, prev: lastEntry.rem, prod: '', amt: '', rec: '', rem: lastEntry.rem
+                });
+                saveTableData();
+            }
+        }
+    }
+
+    async function saveTableData() {
+        let dataArray = [];
+        const rows = document.getElementById("tableBody").rows;
+        
+        for (let i = 0; i < rows.length; i++) {
+            const id = rows[i].cells[0].innerText;
+            dataArray.push({
+                date: rows[i].cells[1].innerText,
+                prev: document.getElementById(`prev_${id}`).innerText,
+                prod: document.getElementById(`prod_${id}`).value,
+                amt: document.getElementById(`amt_${id}`).value,
+                rec: document.getElementById(`rec_${id}`).value,
+                rem: document.getElementById(`rem_${id}`).innerText
+            });
+        }
+
+        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(currentCustomerFile).set({ rows: dataArray });
         
         document.getElementById('saveStatus').style.display = 'inline';
         setTimeout(() => { document.getElementById('saveStatus').style.display = 'none'; }, 3000);
-        console.log("SUCCESS: Data is now safe in Firebase!");
-    } catch (error) {
-        console.error("ERROR saving to Firebase:", error);
     }
-}
 
-    // The rest of your functions (calculate, addNewRow, deleteRow) remain the same...
-    // [I'm keeping them short here to save space, but keep your existing logic for them]
-    
     function calculate(id) {
         const prev = parseFloat(document.getElementById(`prev_${id}`).innerText) || 0;
         const amt = parseFloat(document.getElementById(`amt_${id}`).value) || 0;
@@ -161,9 +222,12 @@ async function loadTableData() {
         const table = document.getElementById("tableBody");
         const row = table.insertRow();
         const today = getUniversalDate();
+        
         let prevVal = 0;
         if (!savedData && table.rows.length > 1) {
-            prevVal = document.getElementById(`rem_${rowCount-1}`).innerText;
+            const prevRow = table.rows[table.rows.length - 2];
+            // Cell 6 is the 'Remaining' column
+            prevVal = prevRow.cells[6].innerText;
         }
 
         row.innerHTML = `
@@ -174,17 +238,11 @@ async function loadTableData() {
             <td><input type="number" id="amt_${rowCount}" oninput="calculate(${rowCount})" value="${savedData ? savedData.amt : ''}"></td>
             <td><input type="number" id="rec_${rowCount}" oninput="calculate(${rowCount})" value="${savedData ? savedData.rec : ''}"></td>
             <td id="rem_${rowCount}" style="font-weight:bold">${savedData ? savedData.rem : '0'}</td>
-            <td><button onclick="deleteRow(this, ${rowCount})" style="color:red; border:none; cursor:pointer;">Delete</button></td>
+            <td><button onclick="this.parentElement.parentElement.remove(); saveTableData();" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">Delete</button></td>
         `;
     }
 
-    function deleteRow(btn, id) {
-        const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
-        if(rem > 0) { alert("LOCK: Balance must be zero!"); } 
-        else { btn.parentElement.parentElement.remove(); saveTableData(); }
-    }
-
-    window.onload = loadTableData;
+    window.onload = loadCustomerList;
 </script>
 
 </body>
