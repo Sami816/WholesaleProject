@@ -252,33 +252,41 @@ const firebaseConfig = {
     }
 
     function addNewRow(data = null, isLocked = false) {
-        const table = document.getElementById("tableBody");
-        const id = table.rows.length + 1;
-        const row = table.insertRow();
-        let prev = 0;
-        if(!data && table.rows.length > 1) { prev = table.rows[table.rows.length-2].cells[6].innerText; }
-
-        let prodHTML = `<div>`;
-        for(let p in productPrices) {
-            const isChecked = (data && data.prod_list && data.prod_list.includes(p)) ? 'checked' : '';
-            prodHTML += `<label class="prod-tag"><input type="checkbox" value="${p}" data-price="${productPrices[p]}" onchange="updateRowTotal(${id})" ${isChecked} ${isLocked ? 'disabled' : ''}> ${p}</label>`;
-        }
-        prodHTML += `</div>`;
-
-        const canDelete = !isLocked || (data && parseFloat(data.rem) === 0);
-
-        row.innerHTML = `
-            <td>${id}</td>
-            <td>${data ? data.date : new Date().toLocaleDateString()}</td>
-            <td id="prev_${id}">${data ? data.prev : prev}</td>
-            <td>${prodHTML}</td>
-            <td><input type="number" id="a_${id}" oninput="calc(${id})" value="${data ? data.amt : ''}" ${isLocked ? 'readonly' : ''}></td>
-            <td><input type="number" id="r_${id}" oninput="calc(${id})" value="${data ? data.rec : ''}" ${isLocked ? 'readonly' : ''}></td>
-            <td id="rem_${id}" style="font-weight:bold">${data ? data.rem : '0'}</td>
-            <td>${canDelete ? `<button class="btn btn-red" onclick="delRow(this, ${id})">Del</button>` : `Locked`}</td>
-        `;
+    const table = document.getElementById("tableBody");
+    const id = table.rows.length + 1;
+    const row = table.insertRow();
+    let prev = 0;
+    
+    // Calculate Previous Income based on the row physically above
+    if(!data && table.rows.length > 1) { 
+        prev = table.rows[table.rows.length-2].cells[6].innerText; 
     }
 
+    let prodHTML = `<div>`;
+    for(let p in productPrices) {
+        const isChecked = (data && data.prod_list && data.prod_list.includes(p)) ? 'checked' : '';
+        prodHTML += `<label class="prod-tag"><input type="checkbox" value="${p}" data-price="${productPrices[p]}" onchange="updateRowTotal(${id})" ${isChecked} ${isLocked ? 'disabled' : ''}> ${p}</label>`;
+    }
+    prodHTML += `</div>`;
+
+    // ACTION LOGIC: 
+    // 1. If row is NOT saved yet (isLocked is false), show Delete button.
+    // 2. If row IS saved AND balance is 0, show Delete button (to clear history).
+    // 3. Otherwise, show "Locked".
+    const remValue = data ? parseFloat(data.rem) : 0;
+    const showDelete = !isLocked || (isLocked && remValue === 0);
+
+    row.innerHTML = `
+        <td>${id}</td>
+        <td>${data ? data.date : new Date().toLocaleDateString()}</td>
+        <td id="prev_${id}">${data ? data.prev : prev}</td>
+        <td>${prodHTML}</td>
+        <td><input type="number" id="a_${id}" oninput="calc(${id})" value="${data ? data.amt : ''}" ${isLocked ? 'readonly' : ''}></td>
+        <td><input type="number" id="r_${id}" oninput="calc(${id})" value="${data ? data.rec : ''}" ${isLocked ? 'readonly' : ''}></td>
+        <td id="rem_${id}" style="font-weight:bold">${data ? data.rem : '0'}</td>
+        <td>${showDelete ? `<button class="btn btn-red" onclick="delRow(this, ${id}, ${isLocked})">Del</button>` : `<span style="color:green;font-size:10px;">Locked</span>`}</td>
+    `;
+}
     function updateRowTotal(id) {
         let total = 0;
         const rows = document.getElementById(`tableBody`).rows;
@@ -314,21 +322,37 @@ const firebaseConfig = {
         alert("Synced!"); loadTable();
     }
 
-    async function delRow(btn, id) {
-        const row = btn.parentElement.parentElement;
-        const rowIndex = row.rowIndex - 1;
-        const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
-        if(rem === 0) {
-            if(confirm("Clear history up to this row?")) {
-                const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).get();
-                let rows = doc.data().rows || [];
-                rows.splice(0, rowIndex + 1);
-                await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).update({rows: rows});
-                loadTable();
-            }
-        } else { row.remove(); }
+    async function delRow(btn, id, isLocked) {
+    const row = btn.parentElement.parentElement;
+    const rowIndex = row.rowIndex - 1; // Position in the current table
+    const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
+
+    // Scenario 1: Deleting a NEW, UNSAVED row
+    if (!isLocked) {
+        row.remove();
+        return; // Stop here, no database change needed yet
     }
 
+    // Scenario 2: Deleting a LOCKED row (only allowed if balance is 0)
+    if (isLocked && rem === 0) {
+        if (confirm("This will clear this entry and all history ABOVE it. Current unsaved rows below will be safe. Proceed?")) {
+            const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).get();
+            let savedRows = doc.data().rows || [];
+            
+            // SECURITY: Only splice the saved history up to THIS specific saved index
+            // We use the ID or a date check to be sure we are at the right spot
+            savedRows.splice(0, rowIndex + 1); 
+            
+            await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).update({rows: savedRows});
+            
+            // Refresh to show only the remaining history and your new unsaved rows
+            loadTable(); 
+            sendNotify(`History cleared up to a zero balance for ${activeCustomer}`);
+        }
+    } else {
+        alert("Security Lock: This row has an active balance and cannot be deleted.");
+    }
+}
     function goBack() { location.reload(); }
     function logout() { firebase.auth().signOut().then(() => { sessionStorage.clear(); window.location.href = "index.html"; }); }
 </script>
