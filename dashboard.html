@@ -3,35 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wholesale Business Manager</title>
+    <title>Wholesale Ledger Pro</title>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --danger: #d63031; --dark: #2d3436; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; margin: 0; }
-        .container { max-width: 1200px; margin: auto; }
+        :root { --bg: #f8f9fa; --card-bg: #ffffff; --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --text: #2d3436; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 1300px; margin: auto; }
         
-        .header { background: white; padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        
-        .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .customer-card { background: white; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #e1e4e8; }
-        .cust-name { font-size: 1.4em; font-weight: bold; color: var(--dark); margin-bottom: 15px; }
-
-        table { width: 100%; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #edf2f7; text-align: center; }
-        th { background: var(--dark); color: white; }
-        input { width: 90%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-
-        .btn { padding: 10px 18px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-blue { background: var(--primary); color: white; }
+        /* Header & Navigation */
+        .header { background: var(--primary); color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .btn-blue { background: var(--accent); color: white; }
         .btn-green { background: var(--success); color: white; }
         .btn-red { background: var(--danger); color: white; }
-        .btn-yellow { background: #fbc531; color: var(--dark); }
+        .btn-outline { background: transparent; border: 1px solid white; color: white; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; }
-        .modal-content { background: white; width: 400px; margin: 50px auto; padding: 30px; border-radius: 12px; }
-        
-        /* Multi-select styling */
-        .product-dropdown { text-align: left; background: #eee; padding: 10px; border-radius: 5px; max-height: 150px; overflow-y: auto; }
-        .product-option { display: block; margin-bottom: 5px; cursor: pointer; }
+        /* Customer Cards */
+        .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
+        .customer-card { background: var(--card-bg); border-radius: 15px; padding: 25px; border: 1px solid #e0e0e0; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .customer-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); }
+        .cust-name { font-size: 1.5em; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+        .cust-meta { font-size: 0.9em; color: #636e72; margin-bottom: 20px; line-height: 1.6; }
+
+        /* Table Design */
+        .table-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f1f3f5; padding: 15px; text-align: center; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #495057; }
+        td { padding: 15px; border-bottom: 1px solid #f1f3f5; text-align: center; }
+        input[readonly], select[disabled] { background: #f8f9fa; border: none; color: #2d3436; font-weight: 600; }
+        input { padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; width: 90%; }
+
+        /* Product Checkbox Group */
+        .prod-box { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 250px; }
+        .prod-tag { font-size: 11px; background: #e9ecef; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; border: 1px solid #ced4da; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); }
+        .modal-content { background: white; width: 400px; margin: 80px auto; padding: 35px; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .modal-content input { width: 100%; padding: 12px; margin: 10px 0 20px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -40,68 +48,64 @@
     <div id="selectionScreen">
         <div class="header">
             <div>
-                <h2 style="margin:0;">Wholesale Manager</h2>
-                <span>Welcome, <b id="ownerDisplay"></b></span>
+                <h1 style="margin:0; font-size: 24px;">Wholesale Management System</h1>
+                <span style="opacity: 0.8;">Active Owner: <b id="ownerDisplay"></b></span>
             </div>
-            <button class="btn btn-red" onclick="logout()">Logout</button>
+            <button class="btn btn-outline" onclick="logout()">Logout</button>
         </div>
 
         <div id="customerList" class="customer-grid"></div>
 
-        <div style="margin-top: 30px; text-align: center; display: flex; justify-content: center; gap: 10px;">
-            <button class="btn btn-blue" onclick="openModal()">+ Add New Customer</button>
-            <button class="btn" style="background:#34495e; color:white;" onclick="openProductModal()">📦 Set Product Prices</button>
+        <div style="margin-top: 40px; text-align: center; display: flex; justify-content: center; gap: 15px;">
+            <button class="btn btn-blue" onclick="openCustModal(false)">+ Create New Customer</button>
+            <button class="btn btn-green" onclick="openProductModal()">📦 Manage Product Catalog</button>
         </div>
     </div>
 
     <div id="ledgerScreen" style="display:none;">
-        <button class="btn btn-yellow" onclick="goBack()">← Back to List</button>
-        <div class="header" style="margin-top:15px;">
+        <button class="btn btn-blue" style="background:#636e72;" onclick="goBack()">← Back to Dashboard</button>
+        <div class="header" style="margin-top:20px; background: var(--accent);">
             <h2 id="ledgerTitle" style="margin:0;"></h2>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Date</th>
-                    <th>Previous Balance</th>
-                    <th>Select Products (Multiple)</th>
-                    <th>Total Product Amount</th>
-                    <th>Received Amount</th>
-                    <th>Remaining Balance</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Date</th><th>Prev Balance</th><th>Product List</th><th>Total Amount</th><th>Received</th><th>Remaining</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
 
-        <div style="margin-top:20px; display: flex; gap: 10px;">
-            <button class="btn btn-blue" onclick="addNewRow()">+ Add New Row</button>
-            <button class="btn btn-green" onclick="saveTable()">Save & Sync Cloud</button>
+        <div style="margin-top:30px; display: flex; gap: 15px;">
+            <button class="btn btn-blue" onclick="addNewRow()">+ Add New Entry</button>
+            <button class="btn btn-green" style="padding: 10px 40px;" onclick="saveTable()">Lock & Sync Records</button>
         </div>
     </div>
 </div>
 
-<div id="profileModal" class="modal">
+<div id="custModal" class="modal">
     <div class="modal-content">
-        <h2>New Customer</h2>
-        <input type="text" id="pName" placeholder="Customer Name">
-        <input type="text" id="pPhone" placeholder="Phone Number" style="margin-top:10px;">
-        <input type="text" id="pAddress" placeholder="Address" style="margin-top:10px;">
-        <button class="btn btn-blue" style="width:100%; margin-top:20px;" onclick="saveProfile()">Create Customer</button>
-        <button class="btn" style="width:100%; margin-top:10px;" onclick="closeAllModals()">Cancel</button>
+        <h2 id="custModalTitle" style="margin-top:0;">Customer Profile</h2>
+        <input type="hidden" id="editOldName">
+        <label>Full Name</label><input type="text" id="pName">
+        <label>WhatsApp</label><input type="text" id="pPhone">
+        <label>Address</label><input type="text" id="pAddress">
+        <button class="btn btn-blue" style="width:100%" onclick="saveCustomer()">Save Customer</button>
+        <button class="btn" style="width:100%; margin-top:10px;" onclick="closeModals()">Cancel</button>
     </div>
 </div>
 
-<div id="productModal" class="modal">
+<div id="prodModal" class="modal">
     <div class="modal-content">
-        <h2>Product Price List</h2>
-        <div id="productListItems" style="margin-bottom:15px;"></div>
-        <input type="text" id="newProdName" placeholder="Product Name">
-        <input type="number" id="newProdPrice" placeholder="Price" style="margin-top:10px;">
-        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="addProduct()">Add Product</button>
-        <button class="btn" style="width:100%; margin-top:10px;" onclick="closeAllModals()">Close</button>
+        <h2 style="margin-top:0;">Product Catalog</h2>
+        <div id="prodListDisplay" style="margin-bottom:20px; max-height: 200px; overflow-y: auto;"></div>
+        <input type="text" id="newPn" placeholder="Product Name">
+        <input type="number" id="newPp" placeholder="Price">
+        <button class="btn btn-blue" style="width:100%" onclick="addProduct()">Add to Catalog</button>
+        <button class="btn" style="width:100%; margin-top:10px;" onclick="closeModals()">Close</button>
     </div>
 </div>
 
@@ -109,8 +113,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 1. CONFIG: PASTE YOUR ACTUAL KEYS HERE
-    
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyD23EPs0fYy1PBypcFI22t0vZlKix-FXDI",
   authDomain: "wholesale-shop-29c12.firebaseapp.com",
@@ -123,139 +126,160 @@ const firebaseConfig = {
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
     const currentOwner = sessionStorage.getItem('activeUser');
     let activeCustomer = "";
-    let rowCount = 0;
     let productPrices = {};
 
-    function closeAllModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-    function openModal() { document.getElementById('profileModal').style.display = 'block'; }
-    function openProductModal() { document.getElementById('productModal').style.display = 'block'; renderProducts(); }
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
+    function openProductModal() { document.getElementById('prodModal').style.display='block'; renderProdCatalog(); }
+    
+    function openCustModal(isEdit, name="", phone="", addr="") {
+        document.getElementById('custModal').style.display='block';
+        document.getElementById('custModalTitle').innerText = isEdit ? "Edit Customer" : "New Customer";
+        document.getElementById('editOldName').value = isEdit ? name : "";
+        document.getElementById('pName').value = name;
+        document.getElementById('pPhone').value = phone;
+        document.getElementById('pAddress').value = addr;
+    }
 
     function getUniversalDate() {
         const d = new Date();
         return d.getFullYear() + "-" + (d.getMonth() + 1).toString().padStart(2, '0') + "-" + d.getDate().toString().padStart(2, '0');
     }
 
-    // --- PRODUCTS ---
+    // --- PRODUCT MANAGEMENT ---
     async function addProduct() {
-        const n = document.getElementById('newProdName').value;
-        const p = document.getElementById('newProdPrice').value;
+        const n = document.getElementById('newPn').value;
+        const p = document.getElementById('newPp').value;
         if(!n || !p) return;
         productPrices[n] = parseFloat(p);
         await db.collection("wholesale_data").doc(currentOwner).set({ products: productPrices }, { merge: true });
-        renderProducts();
+        renderProdCatalog();
     }
 
-    function renderProducts() {
-        const div = document.getElementById('productListItems');
+    function renderProdCatalog() {
+        const div = document.getElementById('prodListDisplay');
         div.innerHTML = "";
         for(let p in productPrices) {
-            div.innerHTML += `<div>${p}: ${productPrices[p]} <button onclick="deleteProd('${p}')" style="color:red; background:none; border:none; cursor:pointer;">x</button></div>`;
+            div.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
+                <span>${p} - <b>${productPrices[p]}</b></span>
+                <button onclick="deleteProdCatalog('${p}')" style="color:red; background:none; border:none; cursor:pointer;">Remove</button>
+            </div>`;
         }
     }
 
-    async function deleteProd(p) {
+    async function deleteProdCatalog(p) {
         delete productPrices[p];
         await db.collection("wholesale_data").doc(currentOwner).set({ products: productPrices }, { merge: true });
-        renderProducts();
+        renderProdCatalog();
     }
 
-    // --- CUSTOMERS ---
+    // --- CUSTOMER LOGIC ---
     async function loadCustomers() {
         document.getElementById('ownerDisplay').innerText = currentOwner;
-        const mainDoc = await db.collection("wholesale_data").doc(currentOwner).get();
-        if(mainDoc.exists) productPrices = mainDoc.data().products || {};
+        const main = await db.collection("wholesale_data").doc(currentOwner).get();
+        if(main.exists) productPrices = main.data().products || {};
 
         const list = document.getElementById('customerList');
         const snap = await db.collection("wholesale_data").doc(currentOwner).collection("customers").get();
         list.innerHTML = "";
         snap.forEach(doc => {
+            const d = doc.data();
+            const name = doc.id;
             list.innerHTML += `<div class="customer-card">
-                <div class="cust-name">${doc.id}</div>
-                <button class="btn btn-blue" onclick="openLedger('${doc.id}')">Open Ledger</button>
-                <button class="btn btn-red" onclick="deleteCust('${doc.id}')" style="margin-top:10px;">Delete Customer</button>
+                <div class="cust-name">${name}</div>
+                <div class="cust-meta">📞 ${d.phone || 'No Phone'}<br>📍 ${d.address || 'No Address'}</div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-blue" onclick="openLedger('${name}')">Open Ledger</button>
+                    <button class="btn btn-green" style="background:#f1c40f; color:black;" onclick="openCustModal(true, '${name}', '${d.phone}', '${d.address}')">Edit</button>
+                    <button class="btn btn-red" onclick="deleteCust('${name}')">Delete</button>
+                </div>
             </div>`;
         });
     }
 
-    async function saveProfile() {
+    async function saveCustomer() {
         const name = document.getElementById('pName').value.trim();
+        const oldName = document.getElementById('editOldName').value;
+        const phone = document.getElementById('pPhone').value;
+        const addr = document.getElementById('pAddress').value;
+
         if(!name) return;
+
+        // If name changed, we'd need to migrate data, for simplicity we update current info
         await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).set({ 
-            phone: document.getElementById('pPhone').value,
-            address: document.getElementById('pAddress').value,
-            rows: [] 
-        });
-        closeAllModals(); loadCustomers();
+            phone: phone, address: addr
+        }, { merge: true });
+
+        closeModals(); loadCustomers();
     }
 
     async function deleteCust(name) {
         const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).get();
         const rows = doc.data().rows || [];
         const lastBal = rows.length > 0 ? parseFloat(rows[rows.length-1].rem) : 0;
-        if(lastBal > 0) return alert("Cannot delete customer with remaining balance!");
-        if(confirm("Delete " + name + "?")) {
+        if(lastBal > 0) return alert("Security Lock: Cannot delete " + name + " because there is an unpaid balance of " + lastBal);
+        if(confirm("Permanently delete " + name + "?")) {
             await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).delete();
             loadCustomers();
         }
     }
 
-    // --- LEDGER ---
+    // --- LEDGER LOGIC (WITH ROW LOCKING) ---
     async function openLedger(name) {
         activeCustomer = name;
         document.getElementById('selectionScreen').style.display = 'none';
         document.getElementById('ledgerScreen').style.display = 'block';
-        document.getElementById('ledgerTitle').innerText = "Ledger: " + name;
+        document.getElementById('ledgerTitle').innerText = "Account Ledger: " + name;
         loadTable();
     }
 
     async function loadTable() {
         const table = document.getElementById("tableBody");
-        table.innerHTML = ""; rowCount = 0;
+        table.innerHTML = "";
         const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).get();
         if(doc.exists) {
             const rows = doc.data().rows || [];
-            rows.forEach(r => addNewRow(r));
+            rows.forEach((r, index) => addNewRow(r, true)); // All loaded rows are LOCKED
         }
     }
 
-    function addNewRow(data = null) {
-        rowCount++;
+    function addNewRow(data = null, isLocked = false) {
         const table = document.getElementById("tableBody");
+        const id = table.rows.length + 1;
         const row = table.insertRow();
-        const id = rowCount;
         let prev = 0;
         if(!data && table.rows.length > 1) {
             prev = table.rows[table.rows.length-2].cells[6].innerText;
         }
 
-        // Create Checkboxes for Products
-        let checkboxes = `<div class="product-dropdown" id="cb_container_${id}">`;
+        // Product Tag Interface
+        let prodHTML = `<div class="prod-box" id="cb_cont_${id}">`;
         for(let p in productPrices) {
             const isChecked = (data && data.prod_list && data.prod_list.includes(p)) ? 'checked' : '';
-            checkboxes += `<label class="product-option"><input type="checkbox" value="${p}" data-price="${productPrices[p]}" onchange="updateRowTotal(${id})" ${isChecked}> ${p} (${productPrices[p]})</label>`;
+            const disabled = isLocked ? 'disabled' : '';
+            prodHTML += `<label class="prod-tag"><input type="checkbox" value="${p}" data-price="${productPrices[p]}" onchange="updateRowTotal(${id})" ${isChecked} ${disabled}> ${p}</label>`;
         }
-        checkboxes += `</div>`;
+        prodHTML += `</div>`;
+
+        const lockAttr = isLocked ? 'readonly' : '';
 
         row.innerHTML = `
             <td>${id}</td>
             <td>${data ? data.date : getUniversalDate()}</td>
             <td id="prev_${id}">${data ? data.prev : prev}</td>
-            <td>${checkboxes}</td>
-            <td><input type="number" id="a_${id}" oninput="calc(${id})" value="${data ? data.amt : ''}"></td>
-            <td><input type="number" id="r_${id}" oninput="calc(${id})" value="${data ? data.rec : ''}"></td>
+            <td>${prodHTML}</td>
+            <td><input type="number" id="a_${id}" oninput="calc(${id})" value="${data ? data.amt : ''}" ${lockAttr}></td>
+            <td><input type="number" id="r_${id}" oninput="calc(${id})" value="${data ? data.rec : ''}" ${lockAttr}></td>
             <td id="rem_${id}" style="font-weight:bold">${data ? data.rem : '0'}</td>
-            <td><button class="btn btn-red" onclick="delRow(this, ${id})">Del</button></td>
+            <td>${!isLocked ? `<button class="btn btn-red" onclick="delRow(this, ${id})">Remove</button>` : `<span style="color:#27ae60; font-size:12px;">Locked</span>`}</td>
         `;
     }
 
     function updateRowTotal(id) {
         let total = 0;
-        const container = document.getElementById(`cb_container_${id}`);
-        const boxes = container.querySelectorAll('input[type="checkbox"]:checked');
-        boxes.forEach(box => { total += parseFloat(box.getAttribute('data-price')); });
+        const boxes = document.getElementById(`cb_cont_${id}`).querySelectorAll('input:checked');
+        boxes.forEach(box => total += parseFloat(box.getAttribute('data-price')));
         document.getElementById(`a_${id}`).value = total > 0 ? total : '';
         calc(id);
     }
@@ -267,24 +291,12 @@ const firebaseConfig = {
         document.getElementById(`rem_${id}`).innerText = (p + a - r).toFixed(2);
     }
 
-    function delRow(btn, id) {
-        const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
-        if(rem !== 0) {
-            alert("Security Lock: You cannot delete a row with a remaining balance! Please clear the balance first.");
-            return;
-        }
-        btn.parentElement.parentElement.remove();
-        saveTable();
-    }
-
     async function saveTable() {
         let rows = [];
         const tableRows = document.getElementById("tableBody").rows;
         for(let r of tableRows) {
             const id = r.cells[0].innerText;
-            const container = document.getElementById(`cb_container_${id}`);
-            const selected = Array.from(container.querySelectorAll('input:checked')).map(i => i.value);
-            
+            const selected = Array.from(document.getElementById(`cb_cont_${id}`).querySelectorAll('input:checked')).map(i => i.value);
             rows.push({
                 date: r.cells[1].innerText,
                 prev: document.getElementById(`prev_${id}`).innerText,
@@ -295,7 +307,12 @@ const firebaseConfig = {
             });
         }
         await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).update({rows: rows});
-        alert("Synced Successfully!");
+        alert("Success: Records Locked & Saved!");
+        loadTable(); // Re-load to lock the new rows
+    }
+
+    function delRow(btn, id) {
+        btn.parentElement.parentElement.remove();
     }
 
     window.onload = loadCustomers;
