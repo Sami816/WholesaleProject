@@ -165,15 +165,46 @@ const firebaseConfig = {
     }
 
     async function saveCustomer() {
-        const name = document.getElementById('pName').value.trim();
-        const phone = document.getElementById('pPhone').value;
-        const addr = document.getElementById('pAddress').value;
-        if(!name) return;
-        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).set({ 
+    const newName = document.getElementById('pName').value.trim();
+    const oldName = document.getElementById('editOldName').value;
+    const phone = document.getElementById('pPhone').value;
+    const addr = document.getElementById('pAddress').value;
+
+    if(!newName) return;
+
+    const ownerRef = db.collection("wholesale_data").doc(currentOwner).collection("customers");
+
+    // FIX: If name is changed (e.g. Haider -> haider)
+    if (oldName && oldName !== newName) {
+        const oldDoc = await ownerRef.doc(oldName).get();
+        if (oldDoc.exists) {
+            const oldData = oldDoc.data();
+            // 1. Create new document with same rows
+            await ownerRef.doc(newName).set({
+                ...oldData,
+                phone: phone,
+                address: addr
+            });
+            // 2. Delete the old one
+            await ownerRef.doc(oldName).delete();
+        }
+    } else {
+        // Normal Save or Edit without name change
+        await ownerRef.doc(newName).set({ 
             phone: phone, address: addr
         }, { merge: true });
-        closeModals(); loadCustomers();
     }
+
+    closeModals(); 
+    loadCustomers();
+    sendNotification("Customer Profile Updated: " + newName);
+}
+
+// Placeholder for Email Notification
+function sendNotification(msg) {
+    console.log("Notification sent: " + msg);
+    // We will integrate EmailJS here in the next step once you have an account
+}
 
     async function deleteCust(name) {
         const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).get();
