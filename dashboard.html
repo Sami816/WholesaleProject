@@ -108,7 +108,18 @@ const firebaseConfig = {
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const currentOwner = sessionStorage.getItem('activeUser');
+    // This ensures we get the EXACT email from the Firebase Login session
+let currentOwner = "";
+
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        currentOwner = user.email; // Use the verified email from Firebase
+        document.getElementById('ownerDisplay').innerText = currentOwner;
+        loadCustomers(); // Load data only after we are sure who the user is
+    } else {
+        window.location.href = "index.html"; // Redirect if not logged in
+    }
+});
 
     if(!currentOwner) { window.location.href = "index.html"; }
 
