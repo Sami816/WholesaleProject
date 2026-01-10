@@ -3,90 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wholesale Management - Cloud Dashboard</title>
+    <title>Wholesale Business Manager</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; margin: 0; }
-        .container { max-width: 1100px; margin: auto; }
-        .header { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #007bff; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; margin: 0; }
+        .container { max-width: 1200px; margin: auto; }
+        .header { background: white; padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
-        /* Customer Grid Styling */
-        .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .customer-card { background: white; padding: 25px; border-radius: 10px; border: 1px solid #ddd; text-align: center; cursor: pointer; transition: 0.3s; font-weight: bold; color: #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .customer-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,123,255,0.2); background: #007bff; color: white; }
-        
-        /* Table Styling */
-        table { width: 100%; background: #fff; border-collapse: collapse; margin-bottom: 15px; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background: #333; color: white; }
-        input { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        
+        /* Customer List UI */
+        .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .customer-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e1e4e8; }
+        .cust-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #007bff; margin-bottom: 10px; }
+        .cust-name { font-size: 1.3em; font-weight: bold; color: #2d3436; margin: 5px 0; }
+        .cust-details { color: #636e72; font-size: 0.9em; line-height: 1.5; margin-bottom: 15px; }
+
         /* Buttons */
-        .controls { background: white; padding: 15px; border-radius: 8px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-save { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-back { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-bottom: 10px; }
-        .status-saved { color: #28a745; font-weight: bold; display: none; margin-left: 10px; }
+        .btn { padding: 10px 15px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-blue { background: #007bff; color: white; }
+        .btn-green { background: #28a745; color: white; }
+        .btn-red { background: #d63031; color: white; }
+        .btn-yellow { background: #fbc531; color: #2d3436; }
+        .btn:hover { opacity: 0.8; }
+
+        /* Ledger Table */
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 10px; overflow: hidden; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #edf2f7; text-align: center; }
+        th { background: #2d3436; color: white; }
+        input { width: 90%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; }
+        .modal-content { background: white; width: 380px; margin: 100px auto; padding: 30px; border-radius: 12px; }
+        .modal-content input { width: 94%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    
-    <div id="customerSelectionScreen">
+    <div id="selectionScreen">
         <div class="header">
-            <h2>Business Manager</h2>
-            <p>Welcome, Owner: <b id="ownerDisplay">Loading...</b></p>
+            <div>
+                <h1 style="margin:0;">Wholesale Manager</h1>
+                <span>Owner: <b id="ownerDisplay"></b></span>
+            </div>
+            <button class="btn btn-red" onclick="logout()">Logout</button>
         </div>
 
-        <h3>Select a Customer File:</h3>
-        <div id="customerList" class="customer-grid">
-            </div>
+        <div id="customerList" class="customer-grid"></div>
 
-        <div class="controls">
-            <input type="text" id="newCustomerName" placeholder="Enter New Customer Name (e.g. Jawad)">
-            <button onclick="addNewCustomer()" class="btn-add">+ Create New File</button>
+        <div style="margin-top: 30px; text-align: center;">
+            <button class="btn btn-blue" style="padding: 15px 40px;" onclick="openModal(false)">+ Create New Customer Profile</button>
         </div>
     </div>
 
     <div id="ledgerScreen" style="display:none;">
-        <button class="btn-back" onclick="backToCustomers()">← Back to Customer List</button>
-        
-        <div class="header">
-            <h2 id="currentCustomerTitle">Customer Ledger</h2>
-            <p>Managing daily records for this customer.</p>
+        <button class="btn btn-yellow" onclick="goBack()">← Back to List</button>
+        <div class="header" style="margin-top:15px;">
+            <h2 id="ledgerTitle" style="margin:0;"></h2>
+            <div id="ledgerCustomerInfo" style="font-size: 0.9em; color: #636e72;"></div>
         </div>
 
-        <table id="excelTable">
+        <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Date</th>
-                    <th>Previous Income</th>
-                    <th>Product Detail</th>
-                    <th>Product Amount</th>
-                    <th>Received Amount</th>
-                    <th>Remaining Balance</th>
-                    <th>Action</th>
+                    <th>ID</th><th>Date</th><th>Prev Income</th><th>Product</th><th>Amt</th><th>Recv</th><th>Rem</th><th>Action</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
 
-        <div class="controls">
-            <button class="btn-add" onclick="addNewRow()">+ Add New Row</button>
-            <button class="btn-save" onclick="saveTableData()">Save & Sync Cloud</button>
-            <span id="saveStatus" class="status-saved">✔ Data Saved Successfully!</span>
+        <div style="margin-top:20px; display: flex; gap: 10px;">
+            <button class="btn btn-blue" onclick="addNewRow()">+ Add Row</button>
+            <button class="btn btn-green" onclick="saveTable()">Save to Cloud</button>
         </div>
     </div>
+</div>
 
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalHeader">Customer Profile</h2>
+        <input type="hidden" id="editMode">
+        <input type="text" id="pName" placeholder="Full Name">
+        <input type="text" id="pPhone" placeholder="WhatsApp Number">
+        <input type="text" id="pAddress" placeholder="Address">
+        <input type="text" id="pPic" placeholder="Profile Pic URL">
+        <button class="btn btn-blue" style="width:100%" onclick="saveProfile()">Save Profile</button>
+        <button class="btn" style="width:100%; margin-top:10px;" onclick="closeModal()">Cancel</button>
+    </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 1. CONFIGURATION: Paste your actual keys from Firebase Project Settings here
+    // 1. YOUR FIREBASE CONFIG HERE
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyD23EPs0fYy1PBypcFI22t0vZlKix-FXDI",
@@ -98,152 +107,179 @@ const firebaseConfig = {
   measurementId: "G-GVX8Q1EJ7S"
 };
 
-    // Initialize
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    const currentOwner = sessionStorage.getItem('activeUser');
+    let activeCustomer = "";
     let rowCount = 0;
-    const currentOwner = sessionStorage.getItem('activeUser') || "Guest";
-    let currentCustomerFile = ""; 
 
-    // Helper: Standard Date (Forces same format on all devices)
+    function logout() { sessionStorage.clear(); window.location.href="index.html"; }
+    function closeModal() { document.getElementById('profileModal').style.display = 'none'; }
+    function openModal(isEdit, data = {}) {
+        document.getElementById('profileModal').style.display = 'block';
+        document.getElementById('editMode').value = isEdit ? data.id : "";
+        document.getElementById('pName').value = data.id || "";
+        document.getElementById('pPhone').value = data.phone || "";
+        document.getElementById('pAddress').value = data.address || "";
+        document.getElementById('pPic').value = data.pic || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    }
+
     function getUniversalDate() {
         const d = new Date();
         return d.getFullYear() + "-" + (d.getMonth() + 1).toString().padStart(2, '0') + "-" + d.getDate().toString().padStart(2, '0');
     }
 
-    // --- NAVIGATION LOGIC ---
-
-    async function loadCustomerList() {
+    // --- CUSTOMER LIST LOGIC ---
+    async function loadCustomers() {
         document.getElementById('ownerDisplay').innerText = currentOwner;
-        const listDiv = document.getElementById('customerList');
-        listDiv.innerHTML = "Checking files...";
-
-        // Path: wholesale_data -> [OwnerName] -> customers (Sub-collection)
-        const snapshot = await db.collection("wholesale_data").doc(currentOwner).collection("customers").get();
+        const list = document.getElementById('customerList');
+        list.innerHTML = "Loading...";
         
-        listDiv.innerHTML = "";
-        if (snapshot.empty) {
-            listDiv.innerHTML = "<p>No customer files found. Create your first one below!</p>";
-        }
+        const snap = await db.collection("wholesale_data").doc(currentOwner).collection("customers").get();
+        list.innerHTML = "";
 
-        snapshot.forEach((doc) => {
+        snap.forEach(doc => {
+            const d = doc.data();
             const name = doc.id;
             const card = document.createElement('div');
             card.className = "customer-card";
-            card.innerText = name;
-            card.onclick = () => openLedger(name);
-            listDiv.appendChild(card);
+            card.innerHTML = `
+                <img src="${d.pic}" class="cust-avatar">
+                <div class="cust-name">${name}</div>
+                <div class="cust-details">📞 ${d.phone}<br>📍 ${d.address}</div>
+                <div style="display:flex; gap:5px; justify-content:center;">
+                    <button class="btn btn-blue" onclick="openLedger('${name}')">Ledger</button>
+                    <button class="btn btn-yellow" onclick="editCust('${name}','${d.phone}','${d.address}','${d.pic}')">Edit</button>
+                    <button class="btn btn-red" onclick="deleteCust('${name}')">Del</button>
+                </div>
+            `;
+            list.appendChild(card);
         });
     }
 
-    async function addNewCustomer() {
-        const name = document.getElementById('newCustomerName').value.trim();
-        if(!name) return alert("Please enter a name");
+    async function saveProfile() {
+        const name = document.getElementById('pName').value;
+        const phone = document.getElementById('pPhone').value;
+        const addr = document.getElementById('pAddress').value;
+        const pic = document.getElementById('pPic').value;
 
-        // Creates a document in the customers sub-collection
-        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).set({ rows: [] });
-        document.getElementById('newCustomerName').value = "";
-        loadCustomerList(); 
+        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).set({
+            phone: phone, address: addr, pic: pic
+        }, {merge: true});
+
+        closeModal();
+        loadCustomers();
     }
 
-    async function openLedger(customerName) {
-        currentCustomerFile = customerName;
-        document.getElementById('customerSelectionScreen').style.display = 'none';
-        document.getElementById('ledgerScreen').style.display = 'block';
-        document.getElementById('currentCustomerTitle').innerText = "Customer File: " + customerName;
-        loadTableData(); 
-    }
+    function editCust(n,p,a,pic) { openModal(true, {id:n, phone:p, address:a, pic:pic}); }
 
-    function backToCustomers() {
-        document.getElementById('customerSelectionScreen').style.display = 'block';
-        document.getElementById('ledgerScreen').style.display = 'none';
-        loadCustomerList();
-    }
+    async function deleteCust(name) {
+        const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).get();
+        const rows = doc.data().rows || [];
+        const bal = rows.length > 0 ? parseFloat(rows[rows.length-1].rem) : 0;
 
-    // --- DATA LOGIC ---
-
-    async function loadTableData() {
-        const tableBody = document.getElementById("tableBody");
-        tableBody.innerHTML = ""; 
-        rowCount = 0;
-
-        const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(currentCustomerFile).get();
-        
-        if (doc.exists) {
-            const data = doc.data().rows || [];
-            data.forEach(item => addNewRow(item));
-
-            const today = getUniversalDate();
-            const todayExists = data.some(row => row.date === today);
-
-            if (!todayExists && data.length > 0) {
-                const lastEntry = data[data.length - 1];
-                alert("New Day! Carrying over balance for " + currentCustomerFile);
-                addNewRow({
-                    date: today, prev: lastEntry.rem, prod: '', amt: '', rec: '', rem: lastEntry.rem
-                });
-                saveTableData();
+        if(bal > 0) {
+            alert("ALERT: Cannot delete " + name + " because they still owe " + bal + " PKR.");
+        } else {
+            if(confirm("Permanently delete " + name + "?")) {
+                await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(name).delete();
+                loadCustomers();
             }
         }
     }
 
-    async function saveTableData() {
-        let dataArray = [];
-        const rows = document.getElementById("tableBody").rows;
-        
-        for (let i = 0; i < rows.length; i++) {
-            const id = rows[i].cells[0].innerText;
-            dataArray.push({
-                date: rows[i].cells[1].innerText,
+    // --- LEDGER LOGIC ---
+    async function openLedger(name) {
+        activeCustomer = name;
+        document.getElementById('selectionScreen').style.display = 'none';
+        document.getElementById('ledgerScreen').style.display = 'block';
+        document.getElementById('ledgerTitle').innerText = "Ledger: " + name;
+        loadTable();
+    }
+
+    function goBack() { 
+        document.getElementById('ledgerScreen').style.display = 'none';
+        document.getElementById('selectionScreen').style.display = 'block';
+        loadCustomers();
+    }
+
+    async function loadTable() {
+        const table = document.getElementById("tableBody");
+        table.innerHTML = ""; rowCount = 0;
+        const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).get();
+        if(doc.exists) {
+            const rows = doc.data().rows || [];
+            rows.forEach(r => addNewRow(r));
+            const today = getUniversalDate();
+            if(rows.length > 0 && rows[rows.length-1].date !== today) {
+                alert("New Day! Carrying forward balance.");
+                addNewRow({date:today, prev:rows[rows.length-1].rem, prod:'', amt:0, rec:0, rem:rows[rows.length-1].rem});
+                saveTable();
+            }
+        }
+    }
+
+    async function saveTable() {
+        let rows = [];
+        const tableRows = document.getElementById("tableBody").rows;
+        for(let r of tableRows) {
+            const id = r.cells[0].innerText;
+            rows.push({
+                date: r.cells[1].innerText,
                 prev: document.getElementById(`prev_${id}`).innerText,
-                prod: document.getElementById(`prod_${id}`).value,
-                amt: document.getElementById(`amt_${id}`).value,
-                rec: document.getElementById(`rec_${id}`).value,
+                prod: document.getElementById(`p_${id}`).value,
+                amt: document.getElementById(`a_${id}`).value,
+                rec: document.getElementById(`r_${id}`).value,
                 rem: document.getElementById(`rem_${id}`).innerText
             });
         }
-
-        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(currentCustomerFile).set({ rows: dataArray });
-        
-        document.getElementById('saveStatus').style.display = 'inline';
-        setTimeout(() => { document.getElementById('saveStatus').style.display = 'none'; }, 3000);
+        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).set({rows: rows}, {merge:true});
+        alert("Synced to Cloud!");
     }
 
-    function calculate(id) {
-        const prev = parseFloat(document.getElementById(`prev_${id}`).innerText) || 0;
-        const amt = parseFloat(document.getElementById(`amt_${id}`).value) || 0;
-        const rec = parseFloat(document.getElementById(`rec_${id}`).value) || 0;
-        document.getElementById(`rem_${id}`).innerText = (prev + amt - rec).toFixed(2);
-    }
-
-    function addNewRow(savedData = null) {
+    function addNewRow(data = null) {
         rowCount++;
         const table = document.getElementById("tableBody");
         const row = table.insertRow();
+        const id = rowCount;
         const today = getUniversalDate();
-        
-        let prevVal = 0;
-        if (!savedData && table.rows.length > 1) {
-            const prevRow = table.rows[table.rows.length - 2];
-            // Cell 6 is the 'Remaining' column
-            prevVal = prevRow.cells[6].innerText;
+        let prev = 0;
+        if(!data && table.rows.length > 1) {
+            prev = table.rows[table.rows.length-2].cells[6].innerText;
         }
 
         row.innerHTML = `
-            <td>${rowCount}</td>
-            <td>${savedData ? savedData.date : today}</td>
-            <td id="prev_${rowCount}">${savedData ? savedData.prev : prevVal}</td>
-            <td><input type="text" id="prod_${rowCount}" value="${savedData ? savedData.prod : ''}"></td>
-            <td><input type="number" id="amt_${rowCount}" oninput="calculate(${rowCount})" value="${savedData ? savedData.amt : ''}"></td>
-            <td><input type="number" id="rec_${rowCount}" oninput="calculate(${rowCount})" value="${savedData ? savedData.rec : ''}"></td>
-            <td id="rem_${rowCount}" style="font-weight:bold">${savedData ? savedData.rem : '0'}</td>
-            <td><button onclick="this.parentElement.parentElement.remove(); saveTableData();" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">Delete</button></td>
+            <td>${id}</td>
+            <td>${data ? data.date : today}</td>
+            <td id="prev_${id}">${data ? data.prev : prev}</td>
+            <td><input id="p_${id}" value="${data ? data.prod : ''}"></td>
+            <td><input type="number" id="a_${id}" oninput="calc(${id})" value="${data ? data.amt : 0}"></td>
+            <td><input type="number" id="r_${id}" oninput="calc(${id})" value="${data ? data.rec : 0}"></td>
+            <td id="rem_${id}" style="font-weight:bold">${data ? data.rem : 0}</td>
+            <td><button class="btn btn-red" onclick="delRow(this)">Del</button></td>
         `;
     }
 
-    window.onload = loadCustomerList;
-</script>
+    function calc(id) {
+        const p = parseFloat(document.getElementById(`prev_${id}`).innerText) || 0;
+        const a = parseFloat(document.getElementById(`a_${id}`).value) || 0;
+        const r = parseFloat(document.getElementById(`r_${id}`).value) || 0;
+        document.getElementById(`rem_${id}`).innerText = (p + a - r).toFixed(2);
+    }
 
+    function delRow(btn) {
+        const row = btn.parentElement.parentElement;
+        // Logic: Only allow deleting the VERY LAST row to keep the balance chain safe
+        if(row.rowIndex === document.getElementById("tableBody").rows.length) {
+            row.remove();
+            saveTable();
+        } else {
+            alert("For safety, you can only delete the latest entry. If you need to fix an old row, just edit the numbers.");
+        }
+    }
+
+    window.onload = loadCustomers;
+</script>
 </body>
 </html>
