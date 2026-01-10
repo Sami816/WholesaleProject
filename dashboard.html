@@ -303,54 +303,78 @@ const firebaseConfig = {
         document.getElementById(`rem_${id}`).innerText = (p + a - r).toFixed(2);
     }
 
-    async function saveTable() {
-        let rows = [];
-        const tableRows = document.getElementById("tableBody").rows;
-        for(let r of tableRows) {
-            const id = r.cells[0].innerText;
-            const selected = Array.from(r.querySelectorAll('input:checked')).map(i => i.value);
-            const amt = document.getElementById(`a_${id}`).value;
-            if(selected.length === 0 && !amt) { alert("Empty row at ID "+id); return; }
-            rows.push({
-                date: r.cells[1].innerText, prev: document.getElementById(`prev_${id}`).innerText,
-                prod_list: selected, amt: amt, rec: document.getElementById(`r_${id}`).value,
-                rem: document.getElementById(`rem_${id}`).innerText
-            });
+   async function saveTable() {
+    let rows = [];
+    const tableRows = document.getElementById("tableBody").rows;
+    
+    for(let r of tableRows) {
+        const id = r.cells[0].innerText;
+        const selected = Array.from(r.querySelectorAll('input:checked')).map(i => i.value);
+        const amt = document.getElementById(`a_${id}`).value;
+        
+        // Stop empty saves
+        if(selected.length === 0 && !amt) { 
+            alert("Row " + id + " is empty!"); 
+            return; 
         }
-        await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).set({rows: rows}, {merge: true});
-        sendNotify(`Ledger updated for ${activeCustomer}`);
-        alert("Synced!"); loadTable();
+
+        rows.push({
+            date: r.cells[1].innerText,
+            prev: document.getElementById(`prev_${id}`).innerText,
+            prod_list: selected,
+            amt: amt,
+            rec: document.getElementById(`r_${id}`).value,
+            rem: document.getElementById(`rem_${id}`).innerText,
+            locked: true // We mark it as locked in the database
+        });
     }
+
+    try {
+        await db.collection("wholesale_data").doc(currentOwner)
+                .collection("customers").doc(activeCustomer)
+                .update({ rows: rows });
+        
+        alert("Synced & Records Locked!");
+        sendNotify(`Ledger updated for ${activeCustomer}`);
+        
+        // REFRESH TABLE: This is the critical step to lock the inputs
+        loadTable(); 
+    } catch (e) {
+        console.error("Save error:", e);
+        alert("Error saving: " + e.message);
+    }
+}
 
     async function delRow(btn, id, isLocked) {
     const row = btn.parentElement.parentElement;
-    const rowIndex = row.rowIndex - 1; // Position in the current table
-    const rem = parseFloat(document.getElementById(`rem_${id}`).innerText);
+    const rowIndex = row.rowIndex - 1; 
+    const remValue = parseFloat(document.getElementById(`rem_${id}`).innerText);
 
-    // Scenario 1: Deleting a NEW, UNSAVED row
+    // 1. If the row is NEW (not saved yet), just remove it from the screen
     if (!isLocked) {
         row.remove();
-        return; // Stop here, no database change needed yet
+        // Re-calculate IDs for remaining rows on screen if needed
+        return;
     }
 
-    // Scenario 2: Deleting a LOCKED row (only allowed if balance is 0)
-    if (isLocked && rem === 0) {
-        if (confirm("This will clear this entry and all history ABOVE it. Current unsaved rows below will be safe. Proceed?")) {
-            const doc = await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).get();
+    // 2. If the row is SAVED, only allow delete if balance is zero
+    if (isLocked && remValue === 0) {
+        if (confirm("Clear this record and all history ABOVE it? (Later rows will be safe)")) {
+            const doc = await db.collection("wholesale_data").doc(currentOwner)
+                          .collection("customers").doc(activeCustomer).get();
             let savedRows = doc.data().rows || [];
             
-            // SECURITY: Only splice the saved history up to THIS specific saved index
-            // We use the ID or a date check to be sure we are at the right spot
+            // Delete everything from index 0 up to THIS row
             savedRows.splice(0, rowIndex + 1); 
             
-            await db.collection("wholesale_data").doc(currentOwner).collection("customers").doc(activeCustomer).update({rows: savedRows});
+            await db.collection("wholesale_data").doc(currentOwner)
+                    .collection("customers").doc(activeCustomer)
+                    .update({ rows: savedRows });
             
-            // Refresh to show only the remaining history and your new unsaved rows
-            loadTable(); 
-            sendNotify(`History cleared up to a zero balance for ${activeCustomer}`);
+            loadTable(); // Refresh to show the new clean state
         }
     } else {
-        alert("Security Lock: This row has an active balance and cannot be deleted.");
+        alert("Security Lock: You cannot delete a saved row with a pending balance.");
     }
 }
     function goBack() { location.reload(); }
